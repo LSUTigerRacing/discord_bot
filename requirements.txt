@@ -1,5 +1,9 @@
 discord.py
 python-dotenv
 
+selenium>=4.0.0
+webdriver-manager>=3.0.0
+PyPDF2>=2.0.0  # For PDF processing if needed
+requests>=2.0.0  # For HTTP requests
 
-# run pip install -r .\requirements.txt
+# to install, run "pip install -r requirements.txt" in terminal
