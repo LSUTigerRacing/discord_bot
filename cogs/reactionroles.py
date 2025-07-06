@@ -4,14 +4,14 @@ import json
 import os
 import logging
 
-class ReactionRoles(commands.Cog):
+class ReactionRoles(commands.Cog, name="rr"):
     def __init__(self, bot):
         self.bot = bot
         self.role_messages = {}
         self.data_file = "reaction_roles.json"
+        self.help_file = "reactionroleshelp.txt"
 
     async def save_data(self):
-        print("called!")
         # serialize data
         save_data = {
             str(msg_id): {str(emoji): role_id for emoji, role_id in roles.items()}
@@ -43,19 +43,39 @@ class ReactionRoles(commands.Cog):
     async def on_ready(self):
         await self.load_data()
 
-    @commands.group(name="Reaction Roles", aliases=["rr"])
+    @commands.group(name="ReactionRoles",
+                    aliases=["rr"],
+                    help = "type !help rr",
+                    description="Create and manage messages that assign roles when users react",
+                    invoke_without_command = True # this makes !help work for this cog
+                    )
     @commands.has_permissions(manage_roles=True)
     async def reaction_roles_group(self, ctx):
-        if ctx.invoked_subcommand is None:
-            await ctx.send("List of commands")
+        if ctx.invoked_subcommand is None: # print out help command if nothing other than !rr
+            await ctx.send_help(self.reaction_roles_group)
+
     
-    @reaction_roles_group.command(name="create")
-    async def create_reaction_message(self, ctx, description: str = "mmm react for roles"):
+    @reaction_roles_group.command(
+            name="create", 
+            help="Create a new reaction role message",
+            description="""
+            Usage:`!rr create [title] [description]`
+
+            Example: !rr create
+
+            Arguments:
+                title - The title of the RR message (default is "Reaction Roles")
+                description - The description of the RR message (default is "Click on the emojis for roles!")
+            
+            The bot will output the message ID for use in other commands. YOU SHOULD WRITE DOWN THE MESSAGE ID SOMEWHERE.
+            """
+    )                
+    async def create_reaction_message(self, ctx, title: str = "Reaction Roles", description: str = "Click on the emojis for roles!"):
         """Reaction Role Message"""
         embed = discord.Embed(
-            title="Reaction Roles",
+            title=title,
             description=description,
-            color=discord.Color.purple()
+            color=discord.Color.dark_purple()
         )
 
         message = await ctx.send(embed=embed)
@@ -63,8 +83,21 @@ class ReactionRoles(commands.Cog):
         await self.save_data()
         await ctx.send(f"Created new reaciton role message with message ID: {message.id}")
 
-    @reaction_roles_group.command(name="add")
-    async def add_reaction_role(self, ctx, message_id: int, emoji: str, role: discord.Role):
+    @reaction_roles_group.command(
+            name="add",
+            help="Add a reaction role to a message",
+            description="""
+            Usage:`!rr add <message_id> <emoji> <@role> [role_type]`
+
+            Example: !rr add 1391197722618499262 🔋 @powertrain sys
+            
+            Arguments:
+                message_id - The ID of the reaction role message (integer)
+                emoji - The emoji to use for the reaction (string or custom emoji)
+                role - The role to assign (ping it)
+                role_type - Optional: "sys" for system or "sub" for subsystem (default: "sys")""",
+            )
+    async def add_reaction_role(self, ctx, message_id: int, emoji: str, role: discord.Role, role_type: str="sys"):
         try:
             message = await ctx.channel.fetch_message(message_id)
 
@@ -94,10 +127,16 @@ class ReactionRoles(commands.Cog):
                 for emb, rol in self.role_messages[message_id].items()
             )
 
-            if embed.fields and embed.fields[0].name == "Roles":
-                embed.set_field_at(0, name="Roles", value=roles_list)
-            else:
-                embed.add_field(name="Roles", value=roles_list)
+            if role_type == "sys":
+                if embed.fields and embed.fields[0].name == "System Roles":
+                    embed.set_field_at(0, name="System Roles", value=roles_list)
+                else:
+                    embed.add_field(name="System Roles", value=roles_list)
+            elif role_type == "sub":
+                if embed.fields and embed.fields[1].name == "Subsystem Roles":
+                    embed.set_field_at(1, name="Subsystem Roles", value=roles_list)
+                else:
+                    embed.add_field(name="Subsystem Roles", value=roles_list)
 
             await message.edit(embed=embed)
             await ctx.send(f"Added role: {emoji} = {role.name}")
@@ -136,7 +175,6 @@ class ReactionRoles(commands.Cog):
     # take role away if reaction removed
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload): # https://discordpy.readthedocs.io/en/stable/api.html?highlight=on_reaction_add#discord.on_raw_reaction_remove
-        print("something happened")
         if payload.message_id not in self.role_messages:
             print("Reaction Roles: Unreact Failure, Reaction Message somehow not in JSON Database")
             return

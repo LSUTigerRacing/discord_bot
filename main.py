@@ -19,8 +19,8 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
-    print("TigerRacing Bot is Live!")
     print(f"Loaded cogs: {', '.join(bot.cogs.keys())}")
+    print("TigerRacing Bot is Live!")
 
 """load all .py files in cogs folder as extensions"""
 async def load_extensions():
