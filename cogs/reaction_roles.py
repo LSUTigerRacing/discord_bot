@@ -97,7 +97,7 @@ class ReactionRoles(commands.Cog, name="rr"):
                 role - The role to assign (ping it)
                 role_type - Optional: "sys" for system or "sub" for subsystem (default: "sys")""",
             )
-    async def add_reaction_role(self, ctx, message_id: int, emoji: str, role: discord.Role, role_type: str="sys"):
+    async def add_reaction_role(self, ctx, message_id: int, emoji: str, role: discord.Role, message_title: str="Reaction Roles", message_desc: str="Click the emojis for roles!"):
         try:
             message = await ctx.channel.fetch_message(message_id)
 
@@ -119,7 +119,7 @@ class ReactionRoles(commands.Cog, name="rr"):
             await message.add_reaction(emoji)
 
             # update embed
-            embed = message.embeds[0] if message.embeds else discord.Embed(title="Reaction Roles")
+            embed = message.embeds[0] if message.embeds else discord.Embed(title=message_title)
 
             # add or update roles listed
             roles_list = "\n".join(
@@ -127,16 +127,7 @@ class ReactionRoles(commands.Cog, name="rr"):
                 for emb, rol in self.role_messages[message_id].items()
             )
 
-            if role_type == "sys":
-                if embed.fields and embed.fields[0].name == "System Roles":
-                    embed.set_field_at(0, name="System Roles", value=roles_list)
-                else:
-                    embed.add_field(name="System Roles", value=roles_list)
-            elif role_type == "sub":
-                if embed.fields and embed.fields[1].name == "Subsystem Roles":
-                    embed.set_field_at(1, name="Subsystem Roles", value=roles_list)
-                else:
-                    embed.add_field(name="Subsystem Roles", value=roles_list)
+            embed.set_field_at(0, name=message_desc, value=roles_list)
 
             await message.edit(embed=embed)
             await ctx.send(f"Added role: {emoji} = {role.name}")
@@ -145,6 +136,67 @@ class ReactionRoles(commands.Cog, name="rr"):
             await ctx.send("Message not found. Make sure you use this command in the same channel as the message.")
         except discord.HTTPException as e:
             await ctx.send(f"Failed to add reaction role; Exception: {e}")
+
+    @reaction_roles_group.command(
+            name="remove",
+            help="Remove a reaction role from a message",
+            description="""
+            Usage:`!rr remove <message_id> <emoji>`
+
+            Example: !rr remove 1391197722618499262 🔋
+            
+            Arguments:
+                message_id - The ID of the reaction role message (integer)
+                emoji - The emoji to use for the reaction (string or custom emoji)""",
+            )
+    async def remove_reaction_role(self, ctx, message_id: int, emoji: str):
+        try:
+            try:
+                message = await ctx.channel.fetch_message(message_id)
+            except discord.NotFound:
+                await ctx.send("Message not found. Make sure you use this command in the same channel as the message.")
+                return
+            except discord.HTTPException as e:
+                await ctx.send(f"Failed to remove reaction role; Exception: {e}")
+                return
+
+            # is message_id a designated reaction role message?
+            if message_id not in self.role_messages:
+                await ctx.send("This is not a reaction role message. Create one with !create.")
+                return
+            
+            # is emoji actually in message
+            if emoji not in self.role_messages[message_id]:
+                await ctx.send("Emoji not found on message!")
+                print(self.role_messages[message_id])
+                return
+            
+
+            #remove emoji reaction
+            await message.clear_reaction(emoji)
+
+            # add or update roles listed
+            if message.embeds:
+                embed = message.embeds[0]
+
+                if self.role_messages[message_id]:
+                    roles_list = "\n".join(
+                        f"{emb} - {ctx.guild.get_role(rol).mention}"
+                        for emb, rol in self.role_messages[message_id].items()
+                    )
+                await message.edit(embed=embed)
+
+            await ctx.send(f"Removed role: {emoji}")
+            # remove reaction role
+            del self.role_messages[message_id][emoji]
+            await self.save_data()
+
+        except discord.NotFound:
+            await ctx.send("Message not found. Make sure you use this command in the same channel as the message.")
+            return
+        except discord.HTTPException as e:
+            await ctx.send(f"Failed to remove reaction role; Exception: {e}")
+            return
 
     # actually assign the role
     @commands.Cog.listener()
