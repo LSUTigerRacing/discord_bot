@@ -1,0 +1,44 @@
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+
+# Environment
+.env
+.env.production
+.env.local
+
+# Git
+.git/
+.gitignore
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build and deployment files
+Dockerfile
+.dockerignore
+cloudbuild.yaml
+docker-compose.yml
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/

@@ -5,6 +5,11 @@ from dotenv import load_dotenv
 import os
 import sys
 
+###
+### (FOR INITIATING GOOGLE CLOUD ONLY) (DON'T WORRY ABOUT THIS BASICALLY) To create a docker container: docker build -t discord-bot .
+### TO RUN THE CODE/BOT, RUN THIS COMMAND: python run_docker.py
+###
+
 load_dotenv()
 test_token = os.getenv('TEST_TOKEN')
 prod_token = os.getenv('PRODUCTION_TOKEN')
@@ -19,15 +24,7 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # ask if to push bot update to prod or keep in test
-target = input("Push to (P)roduction or (D)ev? ").upper()
-if (target != 'P' and target != 'D'):
-    print("Type a valid input! (P or D)")
-
-if (target == 'P'):
-    # ask if they're sure
-    print("You have selected Production. This means you are pushing this code to the main FSAE server.")
-    if (input("Are you sure? This cannot be undone. (Y)es or (N)o. ").upper() != 'Y'):
-        sys.exit()
+target = os.getenv('TARGET', 'D').upper()  # Default to Dev if not set, TARGET set in .env
 
 @bot.event
 async def on_ready():
